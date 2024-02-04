@@ -9,4 +9,5 @@
         com.datomic/peer          {:mvn/version "1.0.7075"
                                    :exclusions [org.slf4j/slf4j-nop
                                                 org.slf4j/slf4j-log4j12]}
-        ch.qos.logback/logback-classic {:mvn/version "1.0.1"}}}
+        ch.qos.logback/logback-classic {:mvn/version "1.0.1"}}
+ :aliases {:run {:exec-fn datomic.load-generator/run}}}

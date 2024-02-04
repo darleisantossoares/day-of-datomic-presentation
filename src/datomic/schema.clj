@@ -11,7 +11,7 @@
    {:db/ident :customer-portifolio/stock-code
     :db/valueType :db.type/keyword
     :db/cardinality :db.cardinality/one}
-   {:db/ident :customer-portifolio/amount
+   {:db/ident :customer-portifolio/total
     :db/valueType :db.type/bigint
     :db/cardinality :db.cardinality/one}
    {:db/ident :customer-portifolio/stock
@@ -22,7 +22,6 @@
     :db/valueType :db.type/tuple
     :db/tupleAttrs [:customer-portifolio/customer-id :customer-portifolio/stock-code]
     :db/unique :db.unique/identity}])
-
 
 (def order-schema
   [[{:db/ident :order/customer-id
@@ -58,8 +57,24 @@
      :db/cardinality :db.cardinality/one}]])
 
 
-
-
+(def customer-portifolio-schema-partitioned
+  [{:db/ident :customer-portifolio-partitioned/customer-id
+    :db/valueType :db.type/uuid
+    :db/cardinality :db.cardinality/one}
+   {:db/ident :customer-portifolio-partitioned/stock-code
+    :db/valueType :db.type/keyword
+    :db/cardinality :db.cardinality/one}
+   {:db/ident :customer-portifolio-partitioned/total
+    :db/valueType :db.type/bigint
+    :db/cardinality :db.cardinality/one}
+   {:db/ident :customer-portifolio-partitioned/stock
+    :db/cardinality :db.cardinality/one
+    :db/valueType :db.type/ref}
+   {:db/ident :customer-portifolio-partitioned/customer-id+stock-code
+    :db/cardinality :db.cardinality/one
+    :db/valueType :db.type/tuple
+    :db/tupleAttrs [:customer-portifolio-partitioned/customer-id :customer-portifolio-partitioned/stock-code]
+    :db/unique :db.unique/identity}])
 
 ;;;;; Transact Schema
 (def db-uri "datomic:dev://localhost:4334/day-of-datomic")
@@ -80,8 +95,7 @@
 ; Transact stock schema
 ;(transact-schema conn stock-schema)
 
-
-;(transact-schema conn customer-portifolio-schema)
+;(transact-schema conn customer-portifolio-schema-partitioned)
 
 ;; read csv
 #_(defn process-csv-row [row]
@@ -107,18 +121,16 @@
 
 (pprint (d/db-stats (d/db conn)))
 
-
 (let [db (d/db (d/connect db-uri))
       query-map {:query '[:find ?e
-                          :in $ 
-                          :where 
+                          :in $
+                          :where
                           [?e :stock/code]]
                  :args [db]
                  :io-context :dod/presentation}
       {:keys [_ io-stats]} (d/query query-map)]
   ;(println "Query Result:" ret)
   (println "I/O Stats:" io-stats))
-
 
 (let [db (d/db (d/connect db-uri))
       query-map {:query '[:find (pull ?e [:db/id :stock/code :stock/company])
@@ -131,7 +143,6 @@
   (println "Query Result:" ret)
   (println "I/O Stats:" io-stats))
 
-
 (let [db (d/db (d/connect db-uri))
       query-map {:query '[:find (pull ?e [:db/id :stock/code :stock/company])
                           :in $
@@ -142,7 +153,6 @@
       {:keys [ret io-stats]} (d/query query-map)]
   (println "Query Result:" ret)
   (println "I/O Stats:" io-stats))
-
 
 ; d/datoms
 (let [conn (d/connect db-uri)
