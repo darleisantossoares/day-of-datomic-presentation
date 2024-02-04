@@ -1,10 +1,8 @@
 (ns datomic.load-generator
   (:require
    [datomic.api :as d]
-   [datomic.schema :as dschema]
-   [datomic.afinity :as aff])
-  (:import
-   (java.util UUID)))
+   [datomic.common :refer [ await-derefs]]
+   [datomic.afinity :as aff]))
 
 
 (defn generate-customer-portifolio
@@ -22,6 +20,8 @@
    :customer-portifolio/stock-code stock-code
    :db/id (d/tempid (d/implicit-part partition-id))})
 
+
+
 (defn create-all-customers
   "Creates n squuids and returns it"
   [n-customers]
@@ -30,8 +30,7 @@
 (def all-customers (create-all-customers 100))
 
 (defn get-all-stocks
-  "Return all stocks availables to purchase
-   in the database"
+  "Return all stocks available in the database"
   [db]
   (let [query-map {:query '[:find (pull ?e [:stock/code :db/id])
                             :in $
@@ -45,8 +44,72 @@
 (def one-stock (first (rand-nth all-stocks)))
 
 
+(defn pipeline
+  [{:keys [conn in-flight tps fell-behind-fn recording-fn op-count spin-sleep? done?]
+    :or   {done?       (atom false)
+           spin-sleep? false
+           op-count    Long/MAX_VALUE
+           fell-behind-fn #(println
+                            (let [ns (- (:now %) (:deadline %))
+                                  us (long (/ ns 1000))
+                                  ms (long (/ us 1000))]
+                              (format "Fell Behind by %s ns, %s us %s ms" ns us ms)))
+           recording-fn (fn [& _] (do (print ".") (flush)))}} txes]
+  (let [q (java.util.concurrent.LinkedBlockingQueue. (int in-flight))
+        target-ops-per-ms        (double (/ tps 1000))
+        target-ops-tick-ns       (long (/ 1000000 target-ops-per-ms))
+        target-ops-pos?          (> target-ops-per-ms 0)
+        sleep-until              (fn sleep-until [^long deadline]
+                                   (let [now (System/nanoTime)]
+                                     (when-not (< now deadline)
+                                       (fell-behind-fn {:now now :deadline deadline})))
+                                   (while (< (System/nanoTime) deadline)
+                                     (when-not spin-sleep?
+                                       (java.util.concurrent.locks.LockSupport/parkNanos (- deadline (System/nanoTime))))))
+        throttle-nanos           (fn throttle-nanos [^long start-time-nanos ^long ops-done]
+                                   (let [deadline (+ start-time-nanos (* ops-done target-ops-tick-ns))]
+                                     (when target-ops-pos? (sleep-until deadline))
+                                     deadline))]
+    {:result-future (future
+                      (loop [{:keys [tx fut] :as current} (.take q)]
+                        (when-not (= current :done)
+                          (if fut
+                            (if-let [res (try
+                                           (deref fut 10000 nil)
+                                           (catch Throwable t nil))]
+                              (let [completed (System/nanoTime)]
+                                (recording-fn (assoc current
+                                                     :res res
+                                                     :completed completed)))
+                              (println "failure after submission. insert retry logic here for" tx))
+                            (println "failure prior to submission. insert retry logic here for" tx))
+                          (recur (.take q))))
+                      :done)
+     :submit-future (future
+                      (let [start-time-nanos (System/nanoTime)]
+                        (loop [txes     txes
+                               ops-done (long 0)]
+                          (when (and
+                                 (seq txes)
+                                 (not @done?)
+                                 (and op-count (< ops-done op-count)))
+                            ;; Do Work
+                            (.put q {:started   (System/nanoTime)
+                                     :scheduled (+ start-time-nanos
+                                                   (* ops-done target-ops-tick-ns))
+                                     :tx        (first txes)
+                                     :fut       (try
+                                                  (d/transact-async conn (:partitioned (first txes)))
+                                                  (d/transact-async conn (:not-partitioned (first txes)))
+                                                  (catch Throwable t nil))})
+                            (throttle-nanos start-time-nanos (inc ops-done))
+                            (recur (next txes) (inc ops-done))))
+                        (.put q :done))
+                      :done)}))
 
-(do
+
+
+#_(do
   (println "---------------------------------------------------")
   (doseq [_ (range 2)]
     (let [c-id (rand-nth all-customers)
@@ -59,7 +122,29 @@
       (println "############################################")))
   (println "---------------------------------------------------"))
 
+(defn generate-txs-portifolio
+  []
+  (let [c-id (rand-nth all-customers)
+        one-stock (first (rand-nth all-stocks))
+        stock-code (:stock/code one-stock)
+        partition-key (aff/hash-uuid c-id)]
+    {:partitioned (generate-customer-portifolio-partitioned c-id one-stock stock-code partition-key)
+     :not-partitioned (generate-customer-portifolio c-id one-stock stock-code)}))
 
+
+(:not-partitioned (generate-txs-portifolio))
+
+
+(defn run
+  [{:keys [uri stocks tps in-flight]}]
+  (let [conn (d/connect uri)]
+    (->> #(generate-txs-portifolio)
+         (repeatedly stocks)
+         (pipeline {:conn conn
+                    :in-flight in-flight
+                    :tps tps})
+         (vals)
+         (await-derefs))))
 
 
 
