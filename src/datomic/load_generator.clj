@@ -32,19 +32,6 @@
 
 (def all-customers (create-all-customers 100))
 
-(println all-customers)
-
-#_(let [db (d/db (d/connect db-uri))
-        query-map {:query '[:find ?e
-                            :in $
-                            :where
-                            [?e :stock/code]]
-                   :args [db]
-                   :io-context :dod/presentation}
-        {:keys [_ io-stats]} (d/query query-map)]
-  ;(println "Query Result:" ret)
-    (println "I/O Stats:" io-stats))
-
 (defn get-all-stocks
   "Return all stocks availables to purchase
    in the database"
@@ -57,14 +44,9 @@
     ret))
 
 (def conn (d/connect "datomic:dev://localhost:4334/day-of-datomic"))
-
 (def all-stocks (get-all-stocks (d/db (d/connect "datomic:dev://localhost:4334/day-of-datomic"))))
-
-;(println (:stock/code (ffirst all-stocks)))
-
 (def one-stock (first (rand-nth all-stocks)))
 
-(println (generate-customer-portifolio (rand-nth all-customers) (:stock/code one-stock) (:db/id one-stock)))
 
 (defn transact-one-example
   [txes
