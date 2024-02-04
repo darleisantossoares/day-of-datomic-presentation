@@ -1,0 +1,225 @@
+{:paths ["src" "resources"]
+ :deps {org.clojure/core.async    {:mvn/version "1.5.648"}
+        org.clojure/java.jmx      {:mvn/version "1.0.0"}
+        com.cognitect/anomalies   {:mvn/version "0.1.12"}
+        com.cognitect/caster      {:mvn/version "1.0.45"}
+        org.clojure/data.fressian {:mvn/version "1.0.0"}
+        org.clojure/data.csv      {:mvn/version "1.0.1"}
+        com.datomic/client-cloud  {:mvn/version "1.0.123"}
+        com.datomic/peer          {:mvn/version "1.0.7075"
+                                   :exclusions [org.slf4j/slf4j-nop
+                                                org.slf4j/slf4j-log4j12]}
+        ch.qos.logback/logback-classic {:mvn/version "1.0.1"}
+
+        ;;Cass2
+        com.datastax.cassandra/cassandra-driver-core {:mvn/version "3.7.1"}
+        com.codahale.metrics/metrics-core {:mvn/version "3.0.2"}
+
+        ;;Cass3
+        com.datastax.oss/java-driver-core-shaded {:mvn/version "4.17.0"}
+        software.aws.mcs/aws-sigv4-auth-cassandra-java-driver-plugin {:mvn/version "4.0.9" :exclusions [com.datastax.oss/java-driver-core com.datastax.oss/java-driver-core-shaded]}
+
+
+        ;; DDB / DDB+S3
+        com.amazonaws/aws-java-sdk-dynamodb {:mvn/version "1.12.358"}
+        com.amazonaws/aws-java-sdk-s3 {:mvn/version "1.12.358"}
+        com.amazonaws/aws-java-sdk-cloudwatch        {:mvn/version "1.12.132"
+                                                      :exclusions  [joda-time/joda-time]}
+        }
+ :aliases {:frontend {:deps {cognitect/ec2-clojure {:local/root "../ec2-clojure"}}
+                      :extra-paths ["frontend"]
+                      :exec-fn datomic.mbrainz-barrel.runner/run-tests
+                      :exec-args {:task-zip-uri
+                                  "s3://com.datomic.system-automator/tools/releases/datomic/mbrainz-barrel/1.0.67/mbrainz-barrel-1.0.67.zip"
+                                  :task-fn :longrunning
+                                  :log-group "datomic-cloud100big"
+                                  :iam-instance-profile "ec2-clojure-mbrainz-barrel-execution"
+                                  :task-args
+                                  {:mbrainz-data "data/mbrainz"
+                                   :spin-sleep true
+                                   :db-name "db-1"
+                                   :client-cfg {:server-type :cloud
+                                                :region "us-east-1"
+                                                :system "cloud100big"
+                                                :endpoint "https://qcnvk05whl.execute-api.us-east-1.amazonaws.com"}
+                                   :tps 100
+                                   :in-flight 102}}}
+           :exercise-system {:deps {cognitect/ec2-clojure {:local/root "../ec2-clojure"}}
+                             :extra-paths ["frontend"]
+                             :exec-fn datomic.mbrainz-barrel.runner/exercise-system
+                             :exec-args {:task-zip-uri
+                                         "s3://com.datomic.system-automator/tools/releases/datomic/mbrainz-barrel/1.0.51/mbrainz-barrel-1.0.51.zip"
+                                         :task-fn :longrunning
+                                         :log-group "datomic-s3-timeout-test"
+                                         :iam-instance-profile "ec2-clojure-mbrainz-barrel-execution"
+                                         :task-args
+                                         {:mbrainz-data "data/mbrainz"
+                                          :spin-sleep true
+                                          :db-name "db-1"
+                                          :client-cfg {:server-type :cloud
+                                                       :region "us-east-1"
+                                                       :system "s3-timeout-test"
+                                                       :endpoint "https://j3hzt3q4hf.execute-api.us-east-1.amazonaws.com"}
+                                          :tps 10
+                                          :in-flight 12}}}
+           :launch-exercise {:deps {cognitect/ec2-clojure {:local/root "../ec2-clojure"}}
+                             :extra-paths ["frontend"]
+                             :exec-fn datomic.mbrainz-barrel.runner/launch-exercise
+                             :exec-args {:task-fn :exercise-system}}
+           :ddb {:jvm-opts ["-Ddatomic.cloudwatchDimension=ddb100big4/mbrainz-barrel/longrunning"]}
+           :ddbs3 {:jvm-opts ["-Ddatomic.cloudwatchDimension=ddbs3100big3/mbrainz-barrel/longrunning"]}
+           :cloud {:jvm-opts ["-Ddatomic.cloudwatchDimension=cloud100big/mbrainz-barrel/longrunning"]}
+           :longrunning
+           {:jvm-opts ["-Ddatomic.cloudwatchName=MBrainzBarrel"
+                       "-Ddatomic.metricsCallback=datomic.mbrainz-barrel.metrics/cloudwatch-reporter"
+                       "-Ddatomic.cloudwatchRegion=us-east-1"]
+            :exec-fn datomic.mbrainz-barrel/run
+            :exec-args {:tps 10
+                        :releases "data/all-releases.fress.gz"
+                        :mbrainz-data "data/mbrainz"}}
+           :Xmx16g
+           {:jvm-opts ["-Xmx16g"]}
+           :Xmx24g
+           {:jvm-opts ["-Xmx24g"]}
+           :Xmx96g
+           {:jvm-opts ["-Xmx96g"]}
+           :ZGC
+           {:jvm-opts ["-XX:+UseZGC"]}
+
+           :queries-dev
+           {:jvm-opts ["-Ddatomic.cloudwatchDimension=cloud100big/mbrainz-barrel/queries/dev"
+                       "-Ddatomic.cloudwatchName=MBrainzBarrel"
+                       "-Ddatomic.metricsCallback=datomic.mbrainz-barrel.metrics/cloudwatch-reporter"
+                       "-Ddatomic.cloudwatchRegion=us-east-1"]
+            :exec-fn datomic.mbrainz-barrel.queries/run}
+
+           :queries-1065-9274
+           {:jvm-opts ["-Ddatomic.cloudwatchDimension=cloud100big/mbrainz-barrel/queries/1065-9274"
+                       "-Ddatomic.cloudwatchName=MBrainzBarrel"
+                       "-Ddatomic.metricsCallback=datomic.mbrainz-barrel.metrics/cloudwatch-reporter"
+                       "-Ddatomic.cloudwatchRegion=us-east-1"]
+            :exec-fn datomic.mbrainz-barrel.queries/run}
+
+
+           :queries-995-9204
+           {:jvm-opts ["-Ddatomic.cloudwatchDimension=cloud100big/mbrainz-barrel/queries/995-9204"
+                       "-Ddatomic.cloudwatchName=MBrainzBarrel"
+                       "-Ddatomic.metricsCallback=datomic.mbrainz-barrel.metrics/cloudwatch-reporter"
+                       "-Ddatomic.cloudwatchRegion=us-east-1"]
+            :exec-fn datomic.mbrainz-barrel.queries/run}
+
+           :queries-1.0.7021
+           {
+            :jvm-opts ["-Ddatomic.cloudwatchDimension=ddb100big4/mbrainz-barrel/queries/7021"
+                       "-Ddatomic.cloudwatchName=MBrainzBarrel"
+                       "-Ddatomic.metricsCallback=datomic.mbrainz-barrel.metrics/cloudwatch-reporter"
+                       "-Ddatomic.cloudwatchRegion=us-east-1"
+                       "-Ddatomic.valcachePath=/opt/ssd1/datomic/valcache/"
+                       "-Ddatomic.valcacheMaxGb=500"
+                       "-Ddatomic.memcachedServers=ddb-me-j6s95xi2zo36.khkcls.cfg.use1.cache.amazonaws.com:11211"
+                       "-Ddatomic.memcachedAutoDiscovery=true"
+                       "-Ddatomic.readConcurrency=200"]
+            :exec-fn datomic.mbrainz-barrel.queries/run}
+
+           :queries-1.0.7073
+           {:jvm-opts ["-Ddatomic.cloudwatchDimension=ddb100big4/mbrainz-barrel/queries/7073-query-pool-64-96g"
+                       "-Ddatomic.cloudwatchName=MBrainzBarrel"
+                       "-Ddatomic.metricsCallback=datomic.mbrainz-barrel.metrics/cloudwatch-reporter"
+                       "-Ddatomic.cloudwatchRegion=us-east-1"
+                       "-Ddatomic.valcachePath=/opt/ssd1/datomic/valcache/"
+                       "-Ddatomic.valcacheMaxGb=800"
+                       "-Ddatomic.memcachedServers=ddb-me-j6s95xi2zo36.khkcls.cfg.use1.cache.amazonaws.com:11211"
+                       "-Ddatomic.memcachedAutoDiscovery=true"
+                       "-Ddatomic.readConcurrency=200"
+                       "-Ddatomic.queryPool=64"]
+            :exec-fn datomic.mbrainz-barrel.queries/run}
+
+           :frontend-queries-7021
+           {:deps {cognitect/ec2-clojure {:local/root "../ec2-clojure"}}
+            :extra-paths ["frontend"]
+            :exec-fn datomic.mbrainz-barrel.runner/run-tests
+            :exec-args {:task-zip-uri "s3://com.datomic.system-automator/tools/releases/datomic/mbrainz-barrel/1.0.72/mbrainz-barrel-1.0.72.zip"
+                        :task-fn :queries-1.0.7021
+                        :instance-type "i3.2xlarge"
+                        :log-group "system-automator"
+                        :iam-instance-profile "ddb100big4-TransactorInstanceProfile-TGTX1MvLzJn9"
+                        :security-group-id "sg-0522d11b284c6a266"
+                        :subnet-id "subnet-0c97189c1be99d020"
+                        :key-name "tomhanks"
+                        :task-command "\"sudo chmod a+x ./bin/ddb-q-7021 && sudo ./bin/ddb-q-7021\""}}
+
+           :frontend-queries-7073
+           {:deps {cognitect/ec2-clojure {:local/root "../ec2-clojure"}}
+            :extra-paths ["frontend"]
+            :exec-fn datomic.mbrainz-barrel.runner/run-tests
+            :exec-args {:task-zip-uri "s3://com.datomic.system-automator/tools/releases/datomic/mbrainz-barrel/1.0.76/mbrainz-barrel-1.0.76.zip"
+                        :task-fn :queries-1.0.7073
+                        :instance-type "i3.4xlarge"
+                        #_#_:instance-type "i3.2xlarge"
+                        :log-group "system-automator"
+                        :iam-instance-profile "ddb100big4-TransactorInstanceProfile-TGTX1MvLzJn9"
+                        :security-group-id "sg-0522d11b284c6a266"
+                        :subnet-id "subnet-0c97189c1be99d020"
+                        :key-name "tomhanks"
+                        :task-command "\"sudo chmod a+x ./bin/ddb-q-7073 && sudo ./bin/ddb-q-7073\""}}
+
+           :frontend-queries-dev1
+           {:deps {cognitect/ec2-clojure {:local/root "../ec2-clojure"}}
+            :extra-paths ["frontend"]
+            :exec-fn datomic.mbrainz-barrel.runner/run-tests
+            :exec-args {:task-zip-uri "s3://com.datomic.system-automator/tools/releases/datomic/mbrainz-barrel/1.0.62/mbrainz-barrel-1.0.62.zip"
+                        :task-fn :queries-dev
+                        :log-group "datomic-cloud100big"
+                        :iam-instance-profile "ec2-clojure-mbrainz-barrel-execution"
+                        :task-args
+                        {:db-name "db-1"
+                         :client-cfg {:server-type :cloud
+                                      :region "us-east-1"
+                                      :system "cloud100big"
+                                      :endpoint "https://psbfrqmsga.execute-api.us-east-1.amazonaws.com"}
+                         :spin-sleep true
+                         :tps 100
+                         :in-flight 102
+                         :qnames [:q1]}}}
+           :frontend-queries-1065-9274
+           {:deps {cognitect/ec2-clojure {:local/root "../ec2-clojure"}}
+            :extra-paths ["frontend"]
+            :exec-fn datomic.mbrainz-barrel.runner/run-tests
+            :exec-args {:task-zip-uri "s3://com.datomic.system-automator/tools/releases/datomic/mbrainz-barrel/1.0.63/mbrainz-barrel-1.0.63.zip"
+                        :task-fn :queries-1065-9274
+                        :log-group "datomic-s3-timeout-test"
+                        :iam-instance-profile "ec2-clojure-mbrainz-barrel-execution"
+                        :task-args
+                        {:db-name "db-1"
+                         :client-cfg {:server-type :cloud
+                                      :region "us-east-1"
+                                      :system "s3-timeout-test"
+                                      :endpoint "https://zlpott12c0.execute-api.us-east-1.amazonaws.com"}
+                         :spin-sleep true
+                         :tps 100
+                         :in-flight 102
+                         :qnames [:q1]}}}
+           :frontend-queries-995-9204
+           {:deps {cognitect/ec2-clojure {:local/root "../ec2-clojure"}}
+            :extra-paths ["frontend"]
+            :exec-fn datomic.mbrainz-barrel.runner/run-tests
+            :exec-args {:task-zip-uri "s3://com.datomic.system-automator/tools/releases/datomic/mbrainz-barrel/1.0.63/mbrainz-barrel-1.0.63.zip"
+                        :task-fn :queries-995-9204
+                        :log-group "datomic-s3-timeout-test"
+                        :iam-instance-profile "ec2-clojure-mbrainz-barrel-execution"
+                        :task-args
+                        {:db-name "db-1"
+                         :client-cfg {:server-type :cloud
+                                      :region "us-east-1"
+                                      :system "s3-timeout-test"
+                                      :endpoint "https://xoa6vywem1.execute-api.us-east-1.amazonaws.com"}
+                         :spin-sleep true
+                         :tps 100
+                         :in-flight 102
+                         :qnames [:q1]}}}
+
+           :build {:deps {com.cognitect.aws/api {:mvn/version "0.8.686"},
+                          com.cognitect.aws/endpoints {:mvn/version "1.1.12.504"},
+                          com.cognitect.aws/s3 {:mvn/version "848.2.1413.0"},
+                          io.github.clojure/tools.build {:git/tag "v0.9.5" :git/sha "24f2894"}}
+                   :ns-default build}}}
