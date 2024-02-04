@@ -40,8 +40,7 @@
 
 (def db-uri "datomic:dev://localhost:4334/day-of-datomic")
 (def conn (d/connect "datomic:dev://localhost:4334/day-of-datomic"))
-(def all-stocks (get-all-stocks (d/db (d/connect "datomic:dev://localhost:4334/day-of-datomic"))))
-(def one-stock (first (rand-nth all-stocks)))
+(def all-stocks (get-all-stocks (d/db (d/connect db-uri))))
 
 (defn pipeline
   [{:keys [conn in-flight tps fell-behind-fn recording-fn op-count spin-sleep? done?]
@@ -114,7 +113,6 @@
         stock-code (:stock/code one-stock)
         partition-key (aff/hash-uuid c-id)
         total-stocks (bigint (+ 1 (rand-int 2000)))]
-
     {:partitioned (generate-customer-portifolio-partitioned c-id stock-code partition-key total-stocks one-stock)
      :not-partitioned (generate-customer-portifolio c-id stock-code total-stocks one-stock)}))
 
@@ -174,7 +172,7 @@
                           :where [?e :customer-portifolio-partitioned/customer-id ?]]
                  :args [db]
                  :io-context :dod/presentation}
-      {:keys [ret _]} (d/query query-map)]
+      {:keys [ret io-stats]} (d/query query-map)]
   (println "Query Result:" ret))
 
 (let [db (d/db (d/connect db-uri))
