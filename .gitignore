@@ -17,4 +17,5 @@ pom.xml.asc
 .lsp/
 *.edn~
 ~*.clj
-./clj-kondo/*
+./clj-kondo/
+*.*~*

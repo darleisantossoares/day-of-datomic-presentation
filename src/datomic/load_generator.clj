@@ -8,10 +8,7 @@
    (java.util UUID)))
 
 
-; Transact the schema
-#_(defn transact-schema [uri]
- (doseq [tx is/datomic-schema]
-   @(d/transact-async (d/connect uri) [tx])))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Activity Simulator
@@ -25,69 +22,14 @@
   []
   (d/squuid))
 
-(defmulti activity->tx-data (fn [db activity] (:activity/operation activity)))
 
 
-(defn pix-transfer-out-request-base
-  []
-  {:pix-transfer-out-request/created-at #inst "2023-09-06T14:43:29.823"
-   :pix-transfer-out-request/requested-at #inst "2023-09-06T14:43:29.785"
-   :pix-transfer-out-request/post-date #inst "2023-09-06"
-   :pix-transfer-out-request/id (get-squiid)
-   :pix-transfer-out-request/beneficiary {
-                                          :beneficiary/id (get-squiid)
-                                          :beneficiary/bank-account
-                                          {:beneficiary-bank-account/account-branch 1
-                                           :beneficiary-bank-account/institution-number "0260"
-                                           :beneficiary-bank-account/institution-ispb "18236120"
-                                           :beneficiary-bank-account/institution-name "NU PAGAMENTOS - IP"
-                                           :beneficiary-bank-account/name "Mango's Joe"
-                                           :beneficiary-bank-account/account-check-digit 0
-                                           :beneficiary-bank-account/id (get-squiid)
-                                           :beneficiary-bank-account/tax-type :beneficiary-bank-account.tax-type/person
-                                           :beneficiary-bank-account/institution-short-name "NU PAGAMENTOS - IP"
-                                           :beneficiary-bank-account/account-number 1122334455
-                                           :beneficiary-bank-account/tax-id "519.013.920-40"
-                                           :beneficiary-bank-account/account-type :beneficiary-bank-account.account-type/checking-account}
-                                          :beneficiary/contact
-                                          {:beneficiary-contact/beneficiary-contact-id (get-squiid)
-                                           :beneficiary-contact/id (get-squiid)}
-                                          :beneficiary/pix-alias
-                                          {:beneficiary-pix-alias/id (get-squiid)
-                                           :beneficiary-pix-alias/type :beneficiary-pix-alias.type/cpf
-                                           :beneficiary-pix-alias/value "519.013.920-40"}}
-   :pix-transfer-out-request/request-hash (get-random-uuid)
-   :pix-transfer-out-request/beneficiary-alias-id (get-random-uuid)
-   :pix-transfer-out-request/beneficiary-bank-account-id (get-squiid)
-   ;; :pix-transfer-out-request/e2e-id "E18236120202309061443s15b59ca497" ;; TO:DO needs to be unique
-   :pix-transfer-out-request/source {:http-request/id (get-random-uuid)} ;; weight the distribution
-   :pix-transfer-out-request/client-certificate {:client-certificate/serial-number "133989849514101249469764420820740144920"}
-   :pix-transfer-out-request/initiation-type :pix-transfer-out-request.initiation-type/pix-alias
-   :pix-transfer-out-request/amount 19.96M
-   :pix-transfer-out-request/message "Rent money"})
 
 
-(defmethod activity->tx-data :activity.operation/savings-account
-  [db activity]
-  [activity])
-
-(defn gen-savings-account
-  []
-  {:savings-account/id (get-squiid) :savings-account/customer-id (get-random-uuid)})
-
- ;TO:DO Sample gen-savings-account from the pool
-
-(defmethod activity->tx-data :activity.operation/pix-request ;TO:DO this guy is not complete
-  [_ {savings-account :activity.operation.pix-request/savings-account}]
-  (let [] ; I need to get the savings-account from the pool
-    [(-> (pix-transfer-out-request-base)
-         (merge
-          {:pix-transfer-out-request/savings-account savings-account}))]))
-
-; I'll need to sample beneficiaries (apply the same pattern)
 
 
-(defn pipeline
+
+#_(defn pipeline
   [{:keys [conn in-flight tps fell-behind-fn recording-fn op-count spin-sleep? done?]
     :or   {done?       (atom false)
            spin-sleep? false
@@ -153,7 +95,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Activity Generators
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn rand-nth
+#_(defn rand-nth
   "Replacement of core/rand-nth (and generators/rand-nth) that allows
   control of the randomization basis (through binding *rnd*) and the
   distribution (via dist).
@@ -165,12 +107,8 @@
    (nth coll (dist))))
 
 
-(defn gen-pix-request-event
-  [db dist savings-account-id-pool & _]
-  {:activity/operation :activity.operation/pix-request
-   :activity.operation.pix-request/savings-account (rand-nth dist savings-account-id-pool)})
 
-(defn load-txes
+#_(defn load-txes
   [conn batch conc txes]
   (->> txes
        (partition-all batch)
@@ -178,7 +116,7 @@
        (vals)
        (await-derefs)))
 
-(defn run
+#_(defn run
   [{:keys [uri seed
            accounts
            pixes balance-conc balance-batch tps
@@ -204,8 +142,8 @@
            (vals)
            (await-derefs)))))
 
-(comment
-  (run {:uri "datomic:dev://localhost:4334/warriv-2"
-        :pixes 1000
+#_(comment
+  (run {:uri "datomic:dev://localhost:4334/day-of-datomic"
+        :stocks 1000
         :accounts 10
         :tps 10}))
