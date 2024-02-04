@@ -29,7 +29,7 @@
      :db/cardinality :db.cardinality/one}]
    [{:db/ident :order/stock-ref
      :db/valueType :db.type/ref
-     :db/cardinality :db.cardinality/on}]
+     :db/cardinality :db.cardinality/one}]
    [{:db/ident :order/total
      :db/valueType :db.type/bigint
      :db/cardinality :db.cardinality/one}]
