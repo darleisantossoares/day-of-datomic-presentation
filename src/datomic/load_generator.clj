@@ -6,9 +6,6 @@
   (:import
    (java.util UUID)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Activity Simulator
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn generate-customer-portifolio
   "Returns a map of a customer + stocks"
@@ -48,10 +45,6 @@
 (def one-stock (first (rand-nth all-stocks)))
 
 
-(defn transact-one-example
-  [txes
-   db]
-  (d/transact db txes))
 
 (do
   (println "---------------------------------------------------")
