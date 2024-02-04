@@ -159,3 +159,12 @@
       {:keys [ret io-stats]} (d/query query-map)]
   (println "Query Result:" ret)
   (println "I/O Stats:" io-stats))
+
+
+; d/datoms
+(let [conn (d/connect db-uri)
+      db (d/db conn)
+      datoms-lazy-seq (->> (d/datoms db :avet :stock/code))]
+  (doseq [datom datoms-lazy-seq]
+    (println datom)))
+
