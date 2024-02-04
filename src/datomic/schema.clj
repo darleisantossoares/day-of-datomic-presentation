@@ -122,7 +122,7 @@
 
 ;(insert-csv-data csv-path conn)
 
-(println (d/db-stats (d/db conn)))
+;(println (d/db-stats (d/db conn)))
 
 
 (let [db (d/db (d/connect db-uri))
@@ -136,3 +136,26 @@
   ;(println "Query Result:" ret)
   (println "I/O Stats:" io-stats))
 
+
+(let [db (d/db (d/connect db-uri))
+      query-map {:query '[:find (pull ?e [:db/id :stock/code :stock/company])
+                          :in $
+                          :where
+                          [?e :stock/code :AMZN]]
+                 :args [db]
+                 :io-context :dod/presentation}
+      {:keys [ret io-stats]} (d/query query-map)]
+  (println "Query Result:" ret)
+  (println "I/O Stats:" io-stats))
+
+
+(let [db (d/db (d/connect db-uri))
+      query-map {:query '[:find (pull ?e [:db/id :stock/code :stock/company])
+                          :in $
+                          :where
+                          [?e :stock/code :NU]]
+                 :args [db]
+                 :io-context :dod/presentation}
+      {:keys [ret io-stats]} (d/query query-map)]
+  (println "Query Result:" ret)
+  (println "I/O Stats:" io-stats))
