@@ -97,7 +97,7 @@
   (doseq [s stock-schema]
     @(d/transact connection s)))
 
-; Transaciona o Stock Schema
+; Transact stock schema
 ;(transact-schema conn stock-schema)
 
 ;; read csv
@@ -109,7 +109,6 @@
     (doall (csv/read-csv reader :skip-lines 1))))
 
 (def csv-path  "/Users/darlei.soares/dev/nu/day-of-datomic-presentation/src/files/stocks.csv")
-
 (defn transform-csv-row-to-datomic [row]
   [{:db/id (d/tempid :db.part/user)
     :stock/code (keyword (first row))
@@ -124,4 +123,16 @@
 ;(insert-csv-data csv-path conn)
 
 (println (d/db-stats (d/db conn)))
+
+
+(let [db (d/db (d/connect db-uri))
+      query-map {:query '[:find ?e
+                          :in $ 
+                          :where 
+                          [?e :stock/code]]
+                 :args [db]
+                 :io-context :dod/presentation}
+      {:keys [_ io-stats]} (d/query query-map)]
+  ;(println "Query Result:" ret)
+  (println "I/O Stats:" io-stats))
 
