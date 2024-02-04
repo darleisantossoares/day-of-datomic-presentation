@@ -1,5 +1,7 @@
 (ns datomic.schema
-  (:require [datomic.api :as d]))
+  (:require [datomic.api :as d]
+            [clojure.data.csv :as csv]
+            [clojure.java.io :as io]))
 
 (def customer-portifolio-schema
   [[{:db/ident :customer-portifolio/customer-id
@@ -81,7 +83,6 @@
      :db/valueType :db.type/float
      :db/cardinality :db.cardinality/one}]])
 
-
 ;;;;; Transact Schema
 (def db-uri "datomic:dev://localhost:4334/day-of-datomic")
 
@@ -93,8 +94,34 @@
 (def conn (d/connect db-uri))
 
 (defn transact-schema [connection schema]
-  @(d/transact connection schema))
+  (doseq [s stock-schema]
+    @(d/transact connection s)))
 
 ; Transaciona o Stock Schema
 ;(transact-schema conn stock-schema)
+
+;; read csv
+#_(defn process-csv-row [row]
+    (println row))
+
+(defn read-csv-file [file-path]
+  (with-open [reader (io/reader file-path)]
+    (doall (csv/read-csv reader :skip-lines 1))))
+
+(def csv-path  "/Users/darlei.soares/dev/nu/day-of-datomic-presentation/src/files/stocks.csv")
+
+(defn transform-csv-row-to-datomic [row]
+  [{:db/id (d/tempid :db.part/user)
+    :stock/code (keyword (first row))
+    :stock/company (second row)}])
+
+(defn insert-csv-data [file-path conn]
+  (let [csv-data (read-csv-file file-path)
+        tx-data (map transform-csv-row-to-datomic csv-data)]
+    (doseq [r tx-data]
+      @(d/transact conn [r]))))
+
+;(insert-csv-data csv-path conn)
+
+(println (d/db-stats (d/db conn)))
 
