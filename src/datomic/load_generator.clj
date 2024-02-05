@@ -105,7 +105,6 @@
                         (.put q :done))
                       :done)}))
 
-
 (defn generate-txs-portifolio
   []
   (let [c-id (rand-nth all-customers)
@@ -115,8 +114,6 @@
         total-stocks (bigint (+ 1 (rand-int 2000)))]
     {:partitioned (generate-customer-portifolio-partitioned c-id stock-code partition-key total-stocks one-stock)
      :not-partitioned (generate-customer-portifolio c-id stock-code total-stocks one-stock)}))
-
-
 
 (defn run
   [{:keys [uri stocks tps in-flight]}]
@@ -129,10 +126,9 @@
          (vals)
          (await-derefs))))
 
+;(run {:uri db-uri :stocks 1 :tps 1 :in-flight 1})
 
-(run {:uri db-uri :stocks 1 :tps 1 :in-flight 1})
-
-@(d/transact-async conn [(:partitioned (generate-txs-portifolio))])
+;@(d/transact-async conn [(:partitioned (generate-txs-portifolio))])
 
 #_(do
     (println "---------------------------------------------------")
@@ -147,24 +143,13 @@
         (println "############################################")))
     (println "---------------------------------------------------"))
 
-
-
 ;(:partitioned (generate-txs-portifolio))
 ;(generate-txs-portifolio)
 
-(defn run
-  [{:keys [uri stocks tps in-flight]}]
-  (let [conn (d/connect uri)]
-    (->> #(generate-txs-portifolio)
-         (repeatedly stocks)
-         (pipeline {:conn conn
-                    :in-flight in-flight
-                    :tps tps})
-         (vals)
-         (await-derefs))))
 
-(println "------------------------------")
-(run {:uri db-uri :stocks 100 :tps 10 :in-flight 10})
+
+;(println "------------------------------")
+;(run {:uri db-uri :stocks 1000000 :tps 100 :in-flight 20})
 
 (let [db (d/db (d/connect db-uri))
       query-map {:query '[:find (pull ?e [*])
@@ -185,5 +170,8 @@
   (println "Query Result:" ret))
 
 (clojure.pprint/pprint (d/db-stats (d/db conn)))
+
+;(let [db (d/db (d/connect db-uri))])
+
 
 
