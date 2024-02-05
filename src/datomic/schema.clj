@@ -23,6 +23,29 @@
     :db/tupleAttrs [:customer-portifolio/customer-id :customer-portifolio/stock-code]
     :db/unique :db.unique/identity}])
 
+
+(def customer-portifolio-index-schema
+  [{:db/ident :customer-portifolio-index/customer-id
+    :db/valueType :db.type/uuid
+    :db/cardinality :db.cardinality/one
+    :db/index true}
+   {:db/ident :customer-portifolio-index/stock-code
+    :db/valueType :db.type/keyword
+    :db/cardinality :db.cardinality/one}
+   {:db/ident :customer-portifolio-index/total
+    :db/valueType :db.type/bigint
+    :db/cardinality :db.cardinality/one}
+   {:db/ident :customer-portifolio-index/stock
+    :db/cardinality :db.cardinality/one
+    :db/valueType :db.type/ref}
+   {:db/ident :customer-portifolio-index/customer-id+stock-code
+    :db/cardinality :db.cardinality/one
+    :db/valueType :db.type/tuple
+    :db/tupleAttrs [:customer-portifolio-index/customer-id :customer-portifolio-index/stock-code]
+    :db/unique :db.unique/identity}])
+
+
+
 (def order-schema
   [[{:db/ident :order/customer-id
      :db/valueType :db.type/uuid
@@ -95,6 +118,8 @@
 ;(transact-schema conn stock-schema)
 
 ;(transact-schema conn customer-portifolio-schema-partitioned)
+
+(transact-schema conn customer-portifolio-index-schema)
 
 ;; read csv
 #_(defn process-csv-row [row]

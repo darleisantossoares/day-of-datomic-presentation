@@ -21,6 +21,14 @@
    :customer-portifolio-partitioned/total total
    :db/id (d/tempid (d/implicit-part partition-id))})
 
+(defn generate-customer-portifolio-indexed
+  "Returns a map of a customer + stocks but partitioned"
+  [customer-id stock-code total stock]
+  {:customer-portifolio-index/customer-id customer-id
+   :customer-portifolio-index/stock stock
+   :customer-portifolio-index/stock-code stock-code
+   :customer-portifolio-index/total total})
+
 (defn create-all-customers
   "Creates n squuids and returns it"
   [n-customers]
@@ -97,8 +105,9 @@
                                                    (* ops-done target-ops-tick-ns))
                                      :tx        (first txes)
                                      :fut       (try
-                                                  (d/transact-async conn [(:not-partitioned (first txes))])
-                                                  (d/transact-async conn [(:partitioned (first txes))])
+                                                  (d/transact-async conn [(first txes)])
+                                        ;(d/transact-async conn [(:not-partitioned (first txes))])
+                                        ;(d/transact-async conn [(:partitioned (first txes))])
                                                   (catch Throwable t (println t)))})
                             (throttle-nanos start-time-nanos (inc ops-done))
                             (recur (next txes) (inc ops-done))))
@@ -115,10 +124,20 @@
     {:partitioned (generate-customer-portifolio-partitioned c-id stock-code partition-key total-stocks one-stock)
      :not-partitioned (generate-customer-portifolio c-id stock-code total-stocks one-stock)}))
 
+(defn generate-txs-indexed
+  []
+  (let [c-id (rand-nth all-customers)
+        one-stock (first (rand-nth all-stocks))
+        stock-code (:stock/code one-stock)
+        total-stocks (bigint (+ 1 (rand-int 2000)))]
+    (generate-customer-portifolio-indexed c-id stock-code total-stocks one-stock)))
+
+(run {:uri db-uri :stocks 300000 :tps 100 :in-flight 50})
+
 (defn run
   [{:keys [uri stocks tps in-flight]}]
   (let [conn (d/connect uri)]
-    (->> #(generate-txs-portifolio)
+    (->> #(generate-txs-indexed)
          (repeatedly stocks)
          (pipeline {:conn conn
                     :in-flight in-flight
@@ -126,54 +145,41 @@
          (vals)
          (await-derefs))))
 
-;(run {:uri db-uri :stocks 1 :tps 1 :in-flight 1})
-
-;@(d/transact-async conn [(:partitioned (generate-txs-portifolio))])
-
-#_(do
-    (println "---------------------------------------------------")
-    (doseq [_ (range 2)]
-      (let [c-id (rand-nth all-customers)
-            one-stock (first (rand-nth all-stocks))
-            stock-code (:stock/code one-stock)
-            partition-key (aff/hash-uuid (rand-nth all-customers))]
-        (clojure.pprint/pprint (generate-customer-portifolio c-id (:db/id one-stock) stock-code))
-        (clojure.pprint/pprint (generate-customer-portifolio-partitioned c-id (:db/id one-stock) stock-code partition-key))
-        (aff/hash-uuid (rand-nth all-customers))
-        (println "############################################")))
-    (println "---------------------------------------------------"))
-
-;(:partitioned (generate-txs-portifolio))
-;(generate-txs-portifolio)
-
-
-
-;(println "------------------------------")
-;(run {:uri db-uri :stocks 1000000 :tps 100 :in-flight 20})
+#_(let [db (d/db (d/connect db-uri))
+        query-map {:query '[:find (pull ?e [*])
+                            :in $
+                            :where [?e :customer-portifolio-partitioned/customer-id ?]]
+                   :args [db]
+                   :io-context :dod/presentation}
+        {:keys [ret io-stats]} (d/query query-map)]
+    (println "Query Result:" ret))
 
 #_(let [db (d/db (d/connect db-uri))
-      query-map {:query '[:find (pull ?e [*])
-                          :in $
-                          :where [?e :customer-portifolio-partitioned/customer-id ?]]
-                 :args [db]
-                 :io-context :dod/presentation}
-      {:keys [ret io-stats]} (d/query query-map)]
-  (println "Query Result:" ret))
-
-#_(let [db (d/db (d/connect db-uri))
-      query-map {:query '[:find (pull ?e [*])
-                          :in $
-                          :where [?e :customer-portifolio/customer-id ?]]
-                 :args [db]
-                 :io-context :dod/presentation}
-      {:keys [ret _]} (d/query query-map)]
-  (println "Query Result:" ret))
+        query-map {:query '[:find (pull ?e [*])
+                            :in $
+                            :where [?e :customer-portifolio/customer-id ?]]
+                   :args [db]
+                   :io-context :dod/presentation}
+        {:keys [ret _]} (d/query query-map)]
+    (println "Query Result:" ret))
 
 (clojure.pprint/pprint (d/db-stats (d/db conn)))
 
 ;(let [db (d/db (d/connect db-uri))])
 
+;(run {:uri db-uri :stocks 300000 :tps 100 :in-flight 50})
 
-(run {:uri db-uri :stocks 100000 :tps 200 :in-flight 50})
+(run {:uri db-uri :stocks 100000 :tps 50 :in-flight 20})
+
+
+
+(let [db (d/db (d/connect db-uri))
+        query-map {:query '[:find (pull ?e [*])
+                            :in $
+                            :where [?e :customer-portifolio-index/customer-id ?]]
+                   :args [db]
+                   :io-context :dod/presentation}
+        {:keys [ret io-stats]} (d/query query-map)]
+    (println "Query Result:" ret))
 
 
