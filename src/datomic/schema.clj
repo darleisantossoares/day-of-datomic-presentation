@@ -56,7 +56,6 @@
      :db/valueType :db.type/string
      :db/cardinality :db.cardinality/one}]])
 
-
 (def customer-portifolio-schema-partitioned
   [{:db/ident :customer-portifolio-partitioned/customer-id
     :db/valueType :db.type/uuid
@@ -122,137 +121,93 @@
 ;(pprint (d/db-stats (d/db conn)))
 
 #_(let [db (d/db (d/connect db-uri))
-      query-map {:query '[:find ?e
-                          :in $
-                          :where
-                          [?e :stock/code]]
-                 :args [db]
-                 :io-context :dod/presentation}
-      {:keys [_ io-stats]} (d/query query-map)]
+        query-map {:query '[:find ?e
+                            :in $
+                            :where
+                            [?e :stock/code]]
+                   :args [db]
+                   :io-context :dod/presentation}
+        {:keys [_ io-stats]} (d/query query-map)]
   ;(println "Query Result:" ret)
-  (println "I/O Stats:" io-stats))
+    (println "I/O Stats:" io-stats))
 
 #_(let [db (d/db (d/connect db-uri))
-      query-map {:query '[:find (pull ?e [:db/id :stock/code :stock/company])
-                          :in $
-                          :where
-                          [?e :stock/code :AMZN]]
-                 :args [db]
-                 :io-context :dod/presentation}
-      {:keys [ret io-stats]} (d/query query-map)]
-  (println "Query Result:" ret)
-  (println "I/O Stats:" io-stats))
+        query-map {:query '[:find (pull ?e [:db/id :stock/code :stock/company])
+                            :in $
+                            :where
+                            [?e :stock/code :AMZN]]
+                   :args [db]
+                   :io-context :dod/presentation}
+        {:keys [ret io-stats]} (d/query query-map)]
+    (println "Query Result:" ret)
+    (println "I/O Stats:" io-stats))
 
 #_(let [db (d/db (d/connect db-uri))
-      query-map {:query '[:find (pull ?e [:db/id :stock/code :stock/company])
-                          :in $
-                          :where
-                          [?e :stock/code :NU]]
-                 :args [db]
-                 :io-context :dod/presentation}
-      {:keys [ret io-stats]} (d/query query-map)]
-  (println "Query Result:" ret)
-  (println "I/O Stats:" io-stats))
+        query-map {:query '[:find (pull ?e [:db/id :stock/code :stock/company])
+                            :in $
+                            :where
+                            [?e :stock/code :NU]]
+                   :args [db]
+                   :io-context :dod/presentation}
+        {:keys [ret io-stats]} (d/query query-map)]
+    (println "Query Result:" ret)
+    (println "I/O Stats:" io-stats))
 
 ; d/datoms
 #_(let [conn (d/connect db-uri)
-      db (d/db conn)
-      datoms-lazy-seq (->> (d/datoms db :avet :stock/code))]
-  (doseq [datom datoms-lazy-seq]
-    (println datom)))
+        db (d/db conn)
+        datoms-lazy-seq (->> (d/datoms db :avet :stock/code))]
+    (doseq [datom datoms-lazy-seq]
+      (println datom)))
 
-
-
-(let [db (d/db (d/connect db-uri))
-      query {:query '[:find (pull ?e [:customer-portifolio/customer-id])
-                      :in $
-                      :where [?e :customer-portifolio/stock-code :AAPL]]
-             :args [db]
-             :io-context :dod/coragem}
-      {:keys [ret io-stats]} (d/query query)]
-  (pprint ret)
-  (pprint io-stats))
-
-
- ;[#:customer-portifolio-partitioned{:customer-id #uuid "65c01b63-998e-42b4-aa73-b417c164bae2"}]
- ;[#:customer-portifolio-partitioned{:customer-id #uuid "65c01b63-1169-4064-beae-a23e0674da76"}]
- ;[#:customer-portifolio-partitioned{:customer-id #uuid "65c01b63-b9af-402d-baaa-4ee99ce4e8b8"}]
- ;[#:customer-portifolio-partitioned{:customer-id #uuid "65c01be5-7c68-429f-8fe4-2339ca4d4f91"}]
- ;[#:customer-portifolio-partitioned{:customer-id #uuid "65c01b63-5453-4d7d-915a-0585bf5d9c22"}]
- ;[#:customer-portifolio-partitioned{:customer-id #uuid "65c01b63-1c8a-48e9-a267-98ed3d9e397b"}]
- ;[#:customer-portifolio-partitioned{:customer-id #uuid "65c01be5-5877-42ea-ad99-7252961e3b30"}]
-
+#_(let [db (d/db (d/connect db-uri))
+        query {:query '[:find (pull ?e [:customer-portifolio/customer-id])
+                        :in $
+                        :where [?e :customer-portifolio/stock-code :AAPL]]
+               :args [db]
+               :io-context :dod/coragem}
+        {:keys [ret io-stats]} (d/query query)]
+    (pprint ret)
+    (pprint io-stats))
 
 (def db (d/db (d/connect db-uri)))
-(def query '[:find (pull ?e [*])
-             :in $
-             :where [?e :customer-portifolio-partitioned/customer-id #uuid "65c01be5-5877-42ea-ad99-7252961e3b30"]])
+#_(def query '[:find (pull ?e [*])
+               :in $
+               :where [?e :customer-portifolio-partitioned/customer-id #uuid "65c01be5-5877-42ea-ad99-7252961e3b30"]])
 
-(def query-map {:query query
-                :args [db] 
-                :io-context :dod/partitioned-customer-id})
+#_(def query-map {:query query
+                  :args [db]
+                  :io-context :dod/partitioned-customer-id})
+#_(let [{:keys [ret io-stats]} (d/query query-map)]
+    (pprint ret)
+    (pprint io-stats))
 
-(let [{:keys [ret io-stats]} (d/query query-map)]
-  (pprint ret)
-  (pprint io-stats))
+#_(def query-with-index '[:find ?e
+                          :in $ ?uuid ?stock-code
+                          :where [?e :customer-portifolio/customer-id+stock-code [?uuid ?stock-code]]])
 
+#_(def query-map {:query query-with-index
+                  :args [db #uuid "65c01be5-5877-42ea-ad99-7252961e3b30" :NURE]
+                  :io-context :dod/query-index})
 
-{:io-context :dod/without-partitions-customer-id,
- :api :query,
- :api-ms 465.78,
- :reads
- {:aevt 126,
-  :dev 198,
-  :eavt 148,
-  :aevt-load 96,
-  :eavt-load 146,
-  :ocache 274,
-  :dev-m {:aevt 126,
-  :dev 198,
-  :eavt 148,
-  :aevt-load 96,
-  :eavt-load 146,
-  :ocache 274,
-  :dev-ms 211.88}}
+#_(let [{:keys [ret io-stats]} (d/query query-map)]
+    (pprint ret)
+    (pprint io-stats))
 
+#_(def query-with-index-incomplete '[:find ?e
+                                     :in $ ?uuid
+                                     :where [?e :customer-portifolio/customer-id+stock-code [?uuid nil]]])
 
+#_(def query-map {:query query-with-index-incomplete
+                  :args [db #uuid  "65c01b63-5453-4d7d-915a-0585bf5d9c22"]
+                  :io-context :dbd/query-index-incomplete})
 
-{:io-context :dod/partitioned-customer-id,
- :api :query,
- :api-ms 78.04,
- :reads
- {:aevt 89,
-  :dev 20,
-  :eavt 10,
-  :aevt-load 27,
-  :eavt-load 6,
-  :ocache 99,
-  :dev-ms 25.31}}
+#_(let [{:keys [ret io-stats]} (d/query query-map)]
+    (pprint ret)
+    (pprint io-stats))
+
+#_(pprint (d/db-stats db))
 
 
-(def query-with-index '[:find ?e
-                        :in $ ?uuid ?stock-code
-                        :where [?e :customer-portifolio/customer-id+stock-code [?uuid ?stock-code]]])
 
-(def query-map {:query query-with-index
-                :args [db #uuid "65c01be5-5877-42ea-ad99-7252961e3b30" :NURE]
-                :io-context :dod/query-index})
- 
 
- (let [{:keys [ret io-stats]} (d/query query-map)]
-   (pprint ret)
-   (pprint io-stats))
- 
-
-(def query-with-index-incomplete '[:find ?e
-                                   :in $ ?uuid
-                                   :where [?e :customer-portifolio/customer-id+stock-code [?uuid nil]]])
-
- (def query-map {:query query-with-index-incomplete
-                 :args [db #uuid  "65c01b63-5453-4d7d-915a-0585bf5d9c22"]
-                 :io-context :dbd/query-index-incomplete})
- 
- (let [{:keys [ret io-stats]} (d/query query-map)]
-   (pprint ret)
-   (pprint io-stats))
- 

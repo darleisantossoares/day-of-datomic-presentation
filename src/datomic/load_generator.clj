@@ -151,7 +151,7 @@
 ;(println "------------------------------")
 ;(run {:uri db-uri :stocks 1000000 :tps 100 :in-flight 20})
 
-(let [db (d/db (d/connect db-uri))
+#_(let [db (d/db (d/connect db-uri))
       query-map {:query '[:find (pull ?e [*])
                           :in $
                           :where [?e :customer-portifolio-partitioned/customer-id ?]]
@@ -160,7 +160,7 @@
       {:keys [ret io-stats]} (d/query query-map)]
   (println "Query Result:" ret))
 
-(let [db (d/db (d/connect db-uri))
+#_(let [db (d/db (d/connect db-uri))
       query-map {:query '[:find (pull ?e [*])
                           :in $
                           :where [?e :customer-portifolio/customer-id ?]]
@@ -173,5 +173,7 @@
 
 ;(let [db (d/db (d/connect db-uri))])
 
+
+(run {:uri db-uri :stocks 100000 :tps 200 :in-flight 50})
 
 
