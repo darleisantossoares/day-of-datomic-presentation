@@ -173,7 +173,7 @@
 
 
 
-(let [db (d/db (d/connect db-uri))
+#_(let [db (d/db (d/connect db-uri))
         query-map {:query '[:find (pull ?e [*])
                             :in $
                             :where [?e :customer-portifolio-index/customer-id ?]]

@@ -43,7 +43,7 @@
 ;; query stock Y owned by customer X without partitions with full index
 
 
-;; query stock Y owned by custoemr X with partitions with full index
+;; query stock Y owned by customer X with partitions with full index
 
 
 ;; using d/datoms to query data, io-stats doesn't support
