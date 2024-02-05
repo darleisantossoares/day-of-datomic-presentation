@@ -7,9 +7,11 @@
 (def db (d/db conn))
 
 
+(clojure.pprint/pprint (d/db-stats db))
+
 
 ;; query all the stocks available in the database
-(let [query-map {:query '[]
+#_(let [query-map {:query '[]
                  :args [db]
                  :io-context :day-of-datomic/get-all-stocks}
       {:keys [ret io-stats]} (d/query query-map)]

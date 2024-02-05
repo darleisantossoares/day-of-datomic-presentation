@@ -132,7 +132,7 @@
         total-stocks (bigint (+ 1 (rand-int 2000)))]
     (generate-customer-portifolio-indexed c-id stock-code total-stocks one-stock)))
 
-(run {:uri db-uri :stocks 300000 :tps 100 :in-flight 50})
+;(run {:uri db-uri :stocks 300000 :tps 100 :in-flight 50})
 
 (defn run
   [{:keys [uri stocks tps in-flight]}]
@@ -169,7 +169,7 @@
 
 ;(run {:uri db-uri :stocks 300000 :tps 100 :in-flight 50})
 
-(run {:uri db-uri :stocks 100000 :tps 50 :in-flight 20})
+;(run {:uri db-uri :stocks 100000 :tps 50 :in-flight 20})
 
 
 
