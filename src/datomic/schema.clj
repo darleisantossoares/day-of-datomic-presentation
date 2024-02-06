@@ -31,7 +31,8 @@
     :db/index true}
    {:db/ident :customer-portifolio-index/stock-code
     :db/valueType :db.type/keyword
-    :db/cardinality :db.cardinality/one}
+    :db/cardinality :db.cardinality/one
+    :db/index true}
    {:db/ident :customer-portifolio-index/total
     :db/valueType :db.type/bigint
     :db/cardinality :db.cardinality/one}
@@ -88,7 +89,7 @@
 
 (defn transact-schema [connection schema]
   (if (> 1 (count schema))
-    (doseq [s stock-schema]
+    (doseq [s schema]
       @(d/transact connection s))
     @(d/transact connection schema)))
 
@@ -97,7 +98,9 @@
 
 ;(transact-schema conn customer-portifolio-schema-partitioned)
 
-(transact-schema conn customer-portifolio-index-schema)
+;(transact-schema conn customer-portifolio-index-schema)
+
+;(d/request-index conn)
 
 ;; read csv
 #_(defn process-csv-row [row]
