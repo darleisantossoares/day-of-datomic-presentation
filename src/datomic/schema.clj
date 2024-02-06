@@ -8,15 +8,19 @@
   [{:db/ident :customer-portifolio/customer-id
     :db/valueType :db.type/uuid
     :db/cardinality :db.cardinality/one}
+
    {:db/ident :customer-portifolio/stock-code
     :db/valueType :db.type/keyword
     :db/cardinality :db.cardinality/one}
+
    {:db/ident :customer-portifolio/total
     :db/valueType :db.type/bigint
     :db/cardinality :db.cardinality/one}
+   
    {:db/ident :customer-portifolio/stock
     :db/cardinality :db.cardinality/one
     :db/valueType :db.type/ref}
+
    {:db/ident :customer-portifolio/customer-id+stock-code
     :db/cardinality :db.cardinality/one
     :db/valueType :db.type/tuple
@@ -48,7 +52,8 @@
 (def customer-portifolio-schema-partitioned
   [{:db/ident :customer-portifolio-partitioned/customer-id
     :db/valueType :db.type/uuid
-    :db/cardinality :db.cardinality/one}
+    :db/cardinality :db.cardinality/one
+    :db/index true}
    {:db/ident :customer-portifolio-partitioned/stock-code
     :db/valueType :db.type/keyword
     :db/cardinality :db.cardinality/one}
@@ -72,6 +77,7 @@
      :db/cardinality :db.cardinality/one
      :db/unique :db.unique/identity
      :db/doc "Stock Code"}]
+   
    [{:db/ident :stock/company
      :db/valueType :db.type/string
      :db/cardinality :db.cardinality/one}]])
@@ -96,7 +102,7 @@
 ; Transact stock schema
 ;(transact-schema conn stock-schema)
 
-;(transact-schema conn customer-portifolio-schema-partitioned)
+(transact-schema conn customer-portifolio-schema-partitioned)
 
 ;(transact-schema conn customer-portifolio-index-schema)
 

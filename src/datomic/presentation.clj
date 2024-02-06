@@ -1,6 +1,7 @@
 (ns datomic.presentation
   (:require [datomic.api :as d]
-            [clojure.pprint :refer [pprint]]))
+            [clojure.pprint :refer [pprint]]
+            [datomic.afinity :as aff]))
 
 (def db-uri "datomic:dev://localhost:4334/day-of-datomic")
 (def conn (d/connect db-uri))
@@ -9,32 +10,47 @@
 (clojure.pprint/pprint (d/db-stats db))
 
 
-(let [query-map {:query '[:find (pull ?e [*])
+(let [query-map {:query '[:find ?e
                           :in $
-                          :where [?e :stock/code ?]]
-                 :args [db]
-                 :io-context :day-of-datomic/stocks
-                 :query-stats true}
-      {:keys [ret  io-stats query-stats]} (d/query query-map)]
-  ;(print ret)
-  (println "=================================")
-  (pprint  io-stats)
-  (println "=================================")
-  (pprint query-stats))
-
-
-
-
-;; query all the stocks available in the database
-(let [query-map {:query '[:find (pull ?e [*])
-                          :in $
-                          :where [?e :stock/code ?]]
+                          :where [?e :stock/code :NU]]
                  :args [db]
                  :io-context :day-of-datomic/stocks}
       {:keys [ret  io-stats]} (d/query query-map)]
   (print ret)
   (println "=================================")
-  (pprint  io-stats))
+  (pprint  io-stats)
+  (println "=================================")
+  )
+
+
+
+{:io-context :day-of-datomic/stocks,
+ :api :query,
+ :api-ms 91.04,
+ :reads {:aevt 8, :eavt 15, :ocache 23}}
+
+
+
+{:io-context :day-of-datomic/stocks,
+ :api :query,
+ :api-ms 110.14,
+ :reads
+ {:aevt 22400, :dev 5, :aevt-load 9, :ocache 22400, :dev-ms 13.29}}
+
+
+{:io-context :day-of-datomic/stocks,
+ :api :query,
+ :api-ms 13.95,
+ :reads
+ {:avet 2,
+  :dev 2,
+  
+  
+  :ocache 2,
+  :dev-ms 4.39,
+  :avet-load 2}}
+
+
 
 ;; query customers
 (defn customers-sample
@@ -58,19 +74,97 @@
 
 (def customers-sample-testing (customers-sample db 2000))
 
-(println (:customer-portifolio/customer-id (first (rand-nth (:customers customers-sample-testing)))))
+(def c-1 (:customer-portifolio/customer-id (first (rand-nth (:customers customers-sample-testing)))))
 
 
-(doseq [datom (d/datoms db :avet :stocks/code)]
-  (println datom))
-
-
+(println c-1)
 
 
 
+(let [query-map {:query '[:find (pull ?e [*])
+                          :in $ ?customer-id 
+                          :where [?e :customer-portifolio/customer-id ?customer-id]]
+                 :args [db c-1]
+                 :io-context :day-of-datomic/customer-stock}
+      {:keys [ret  io-stats]} (d/query query-map)]
+  (println (count ret))
+  (pprint io-stats))
+
+
+(def c-2 (:customer-portifolio-index/customer-id (first (rand-nth (:customer-indexed customers-sample-testing)))))
+
+
+(println c-2)
 
 
 
+(def c-3 (:customer-portifolio-partitioned/customer-id (first (rand-nth (:customers-partitioned customers-sample-testing)))))
+(println c-3)
+
+(let [query-map {:query '[:find (pull ?e [:customer-portifolio-index/customer-id
+                                          :customer-portifolio-index/stock-code
+                                          :customer-portifolio-index/stock])
+                          :in $ ?customer-id 
+                          :where [?e :customer-portifolio-index/customer-id ?customer-id]]
+                 :args [db c-3]
+                 :io-context :day-of-datomic/customer-stock-partitioned}
+      {:keys [ret  io-stats]} (d/query query-map)]
+  (doseq [x ret]
+    (print x))
+  (pprint io-stats))
+
+{:io-context :day-of-datomic/customer-stock-indexed,
+ :api :query,
+ :api-ms 176.68,
+ :reads
+ {:avet 1,
+  :dev 48,
+  :eavt 18368,
+  :eavt-load 47,
+  :ocache 18369,
+  :dev-ms 61.53,
+  :avet-load 1}}
+
+
+{:io-context :day-of-datomic/customer-stock-indexed,
+ :api :query,
+ :api-ms 91.21,
+ :reads
+ {:avet 1,
+  :aevt 692,
+  :dev 23,
+  :aevt-load 22,
+  :ocache 693,
+  :dev-ms 27.71,
+  :avet-load 1}}
+
+
+{:io-context :day-of-datomic/customer-stock-partitioned,
+ :api :query,
+ :api-ms 8.81,
+ :reads {:avet 1, :dev 1, :ocache 1, :dev-ms 3.65, :avet-load 1}}
+
+
+(let [query-map {:query '[:find (pull ?e [*])
+                          :in $ ?customer-id
+                          :where [?e :customer-portifolio/customer-id+stock-code [?customer-id :NU]]]
+                 :args [db c-1]
+                 :io-context :day-of-datomic/customer-stock}
+      {:keys [ret  io-stats]} (d/query query-map)]
+  (println ret)
+  (pprint io-stats))
+
+
+{:io-context :day-of-datomic/customer-stock,
+ :api :query,
+ :api-ms 107.16,
+ :reads {:aevt 137, :eavt 20253, :ocache 20390}}
+
+
+{:io-context :day-of-datomic/customer-stock,
+ :api :query,
+ :api-ms 10.99,
+ :reads {:avet 1, :dev 1, :ocache 1, :dev-ms 4.57, :avet-load 1}}
 
 
 
